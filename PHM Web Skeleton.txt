@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Analytics Hub</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,system-ui,sans-serif);background:var(--color-background-tertiary,#f5f5f5);min-height:100vh;color:var(--color-text-primary,#111)}
+.page{display:none;min-height:100vh}
+.page.active{display:flex}
+
+/* LOGIN */
+#loginPage{align-items:center;justify-content:center;background:linear-gradient(135deg,#0a2540 0%,#1a4a7a 50%,#0e3460 100%)}
+.login-box{background:#fff;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,0.3)}
+.login-logo{text-align:center;margin-bottom:1.75rem}
+.login-logo .logo-icon{width:52px;height:52px;background:linear-gradient(135deg,#0a2540,#1a6bbf);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 0.75rem}
+.login-logo h1{font-size:20px;font-weight:600;color:#0a2540}
+.login-logo p{font-size:13px;color:#6b7280;margin-top:4px}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:6px;letter-spacing:0.4px;text-transform:uppercase}
+.form-group input{width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;color:#111;background:#fafafa;transition:border-color .2s,box-shadow .2s;outline:none}
+.form-group input:focus{border-color:#1a6bbf;box-shadow:0 0 0 3px rgba(26,107,191,0.12);background:#fff}
+.login-btn{width:100%;padding:11px;background:#0a2540;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;transition:background .2s;margin-top:0.5rem}
+.login-btn:hover{background:#1a4a7a}
+.login-error{display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:0.75rem;text-align:center}
+
+/* LOADING */
+#loadingPage{align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;background:linear-gradient(135deg,#0a2540 0%,#1a4a7a 50%,#0e3460 100%)}
+.loader-logo{text-align:center}
+.loader-logo .logo-icon{width:64px;height:64px;background:rgba(255,255,255,0.15);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem}
+.loader-logo h2{color:#fff;font-size:22px;font-weight:600}
+.loader-logo p{color:rgba(255,255,255,0.6);font-size:13px;margin-top:4px}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:rgba(255,255,255,0.6);font-size:13px}
+
+/* ── Typing cursor for paragraph ── */
+.type-cursor{display:inline-block;width:2px;height:1.1em;background:rgba(255,255,255,0.7);margin-left:1px;vertical-align:middle;animation:tcblink .65s step-end infinite}
+@keyframes tcblink{from,to{opacity:1}50%{opacity:0}}
+
+/* MAIN */
+#mainPage{flex-direction:column}
+
+/* ── Nav animation — improved ── */
+.topnav{background:#0a2540;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden}
+.topnav-left{display:flex;align-items:center;gap:12px}
+.topnav-logo{width:32px;height:32px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.topnav-brand{display:flex;flex-direction:column}
+.topnav-title{font-size:15px;font-weight:600}
+.topnav-subtitle{font-size:11px;color:rgba(255,255,255,0.6);margin-top:1px}
+
+/* Welcome mode: centre the brand, hide everything else */
+.topnav.welcome-mode .topnav-left{position:absolute;left:50%;transform:translateX(-50%)}
+.topnav.welcome-mode .nav-links{visibility:hidden;pointer-events:none}
+.topnav.welcome-mode .topnav-right{visibility:hidden;pointer-events:none}
+
+/* Brand slide: centre → left */
+@keyframes brandSlideLeft{
+  0%{left:50%;transform:translateX(-50%)}
+  60%{left:0;transform:translateX(4px)}
+  100%{left:0;transform:translateX(0)}
+}
+.topnav.animating-out .topnav-left{animation:brandSlideLeft .55s cubic-bezier(.25,.46,.45,.94) forwards}
+
+/* Nav items: each drops down from behind the bar with a bounce */
+.nav-links{display:flex;gap:0;list-style:none}
+.nav-links li{overflow:hidden}
+.nav-links li a{
+  display:block;padding:0 16px;height:56px;line-height:56px;font-size:13px;
+  color:rgba(255,255,255,0.75);text-decoration:none;cursor:pointer;
+  transform:translateY(-100%);opacity:0;
+  transition:color .2s,background .2s
+}
+.nav-links li a:hover,.nav-links li a.active{color:#fff;background:rgba(255,255,255,0.08)}
+
+.topnav.nav-revealed .nav-links li:nth-child(1) a{animation:navDrop .5s .18s cubic-bezier(.34,1.5,.64,1) forwards}
+.topnav.nav-revealed .nav-links li:nth-child(2) a{animation:navDrop .5s .30s cubic-bezier(.34,1.5,.64,1) forwards}
+.topnav.nav-revealed .nav-links li:nth-child(3) a{animation:navDrop .5s .42s cubic-bezier(.34,1.5,.64,1) forwards}
+@keyframes navDrop{
+  0%  {transform:translateY(-110%);opacity:0}
+  60% {transform:translateY(6px);opacity:1}
+  100%{transform:translateY(0);opacity:1}
+}
+
+/* Right side: slides in from right + fade */
+.topnav-right{display:flex;align-items:center;gap:1rem;opacity:0;transform:translateX(28px);transition:opacity .45s .45s ease,transform .45s .45s cubic-bezier(.34,1.2,.64,1)}
+.topnav.nav-revealed .topnav-right{opacity:1;transform:translateX(0);visibility:visible;pointer-events:auto}
+
+.search-bar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);border-radius:8px;padding:0 12px;height:34px}
+.search-bar input{background:none;border:none;outline:none;color:#fff;font-size:13px;width:160px}
+.search-bar input::placeholder{color:rgba(255,255,255,0.5)}
+.logout-btn{padding:6px 14px;border:1px solid rgba(255,255,255,0.25);border-radius:8px;font-size:12px;color:rgba(255,255,255,0.8);cursor:pointer;background:none;transition:all .2s}
+.logout-btn:hover{background:rgba(255,255,255,0.1);color:#fff}
+
+/* VIEWS */
+.view{display:none;flex:1;flex-direction:column}
+.view.active{display:flex}
+
+/* WELCOME */
+#viewWelcome{min-height:calc(100vh - 56px)}
+.welcome-hero{background:linear-gradient(135deg,#0a2540 0%,#1a5fa0 100%);padding:3rem 2rem 4rem;position:relative;overflow:hidden;text-align:center;min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center}
+.welcome-hero::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,0.03)}
+.welcome-hero::after{content:'';position:absolute;bottom:-80px;left:60px;width:200px;height:200px;border-radius:50%;background:rgba(79,179,246,0.07)}
+.welcome-hero-inner{position:relative;z-index:1}
+.welcome-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:5px 14px;font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:1.25rem}
+.welcome-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* Headline — static, no typing */
+.welcome-hero h1{font-size:32px;font-weight:700;color:#fff;letter-spacing:-0.5px;line-height:1.3;margin-bottom:0.1rem}
+.welcome-hero h1 span{color:#4fb3f6}
+
+/* Paragraph typing */
+.welcome-hero .hero-para{font-size:14px;color:rgba(255,255,255,0.65);margin-top:0.75rem;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.7;min-height:5.5em;text-align:center}
+.cursor{display:inline-block;width:3px;height:1em;background:#4fb3f6;margin-left:2px;vertical-align:middle;animation:blink .7s step-end infinite}
+@keyframes blink{from,to{opacity:1}50%{opacity:0}}
+.welcome-cta{margin-top:1.75rem;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.cta-btn-primary{padding:11px 24px;background:#fff;color:#0a2540;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.cta-btn-primary:hover{background:#e8f4fd;transform:translateY(-1px)}
+.cta-btn-secondary{padding:11px 24px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.cta-btn-secondary:hover{background:rgba(255,255,255,0.18)}
+.welcome-stats{display:flex;gap:1rem;justify-content:center;margin-top:2rem;flex-wrap:wrap}
+.w-stat{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 24px;text-align:center}
+.w-stat-num{font-size:24px;font-weight:700;color:#fff}
+.w-stat-label{font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px}
+
+/* DASHBOARD VIEW */
+.section-hero{background:linear-gradient(135deg,#0a2540 0%,#1a5fa0 100%);padding:2rem 1.5rem 2.5rem;position:relative;overflow:hidden}
+.section-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.04)}
+.section-hero::after{content:'';position:absolute;bottom:-60px;right:80px;width:160px;height:160px;border-radius:50%;background:rgba(79,179,246,0.08)}
+.section-hero-inner{position:relative;z-index:1}
+.section-hero h2{font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.section-hero p{font-size:13px;color:rgba(255,255,255,0.65);margin-top:6px}
+.hero-stats{display:flex;gap:1rem;margin-top:1.25rem;flex-wrap:wrap}
+.hero-stat{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 18px;text-align:center}
+.hero-stat-num{font-size:22px;font-weight:700;color:#fff}
+.hero-stat-label{font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px}
+.content-area{padding:1.5rem}
+.filter-bar{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap}
+.filter-btn{padding:6px 16px;border-radius:20px;font-size:12px;border:1.5px solid #ccc;background:#fff;color:#555;cursor:pointer;transition:all .2s;font-weight:500}
+.filter-btn.active,.filter-btn:hover{background:#0a2540;color:#fff;border-color:#0a2540}
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.dash-card{background:#fff;border:0.5px solid #e5e7eb;border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow .2s,transform .2s}
+.dash-card:hover{box-shadow:0 8px 24px rgba(0,0,0,0.12);transform:translateY(-2px)}
+.dash-card-header{padding:14px 16px 12px;border-bottom:0.5px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.dash-card-title{font-size:14px;font-weight:600;color:#111;line-height:1.3}
+.dash-card-tag{font-size:10px;font-weight:500;padding:3px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0}
+.tag-sales{background:#dbeafe;color:#1d4ed8}
+.tag-hr{background:#fce7f3;color:#9d174d}
+.tag-finance{background:#d1fae5;color:#065f46}
+.tag-ops{background:#fef3c7;color:#92400e}
+.tag-marketing{background:#ede9fe;color:#5b21b6}
+.dash-card-body{padding:14px 16px}
+.dash-card-body p{font-size:12.5px;color:#6b7280;line-height:1.55}
+.dash-card-thumb{height:90px;position:relative;overflow:hidden}
+.thumb-bars{position:absolute;bottom:12px;left:16px;right:16px;display:flex;align-items:flex-end;gap:5px}
+.bar{border-radius:3px 3px 0 0;background:rgba(255,255,255,0.35);flex:1}
+.thumb-line{position:absolute;top:16px;left:16px;right:16px;height:40px}
+.thumb-pie{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.dash-card-footer{padding:10px 16px;border-top:0.5px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between}
+.dash-meta{font-size:11px;color:#9ca3af}
+.open-btn{font-size:11px;font-weight:500;color:#1a6bbf;cursor:pointer;background:none;border:none;padding:0}
+.no-results{text-align:center;padding:3rem;color:#6b7280;font-size:14px;grid-column:1/-1}
+
+/* ── CONTACT VIEW ── */
+#viewContact{min-height:calc(100vh - 56px);background:#f4f7fc}
+.contact-hero{background:linear-gradient(135deg,#0a2540 0%,#1a5fa0 100%);padding:3rem 2rem 3.5rem;position:relative;overflow:hidden;text-align:center}
+.contact-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,0.04)}
+.contact-hero::after{content:'';position:absolute;bottom:-70px;left:40px;width:200px;height:200px;border-radius:50%;background:rgba(79,179,246,0.07)}
+.contact-hero-inner{position:relative;z-index:1}
+.contact-online-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:5px 16px;font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:1.1rem;font-weight:500}
+.online-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite}
+.contact-hero h2{font-size:30px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.contact-hero p{font-size:14px;color:rgba(255,255,255,0.62);margin-top:8px;line-height:1.65}
+.contact-wrap{padding:2rem 2rem 2.5rem;max-width:980px;margin:0 auto;width:100%}
+
+/* ── CHANGE 3: All 4 contact cards in one equal grid ── */
+.all-cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:1.5rem}
+
+.ccard{background:#fff;border-radius:16px;border:1px solid #dde5f4;padding:1.5rem;display:flex;flex-direction:column;gap:0.9rem;transition:box-shadow .2s,transform .2s}
+.ccard:hover{box-shadow:0 10px 32px rgba(10,37,64,0.1);transform:translateY(-3px)}
+.ccard-icon{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ccard-icon.bl{background:#e6f1fb}
+.ccard-icon.gr{background:#e1f5ee}
+.ccard-icon.pu{background:#ede9fe}
+.ccard-icon.or{background:#fff7ed}
+.ccard-icon svg{width:22px;height:22px}
+.ccard-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#94a3b8;margin-bottom:1px}
+.ccard-val{font-size:15px;font-weight:700;color:#0a2540;line-height:1.25}
+.ccard-sub{font-size:12px;color:#6b7280;margin-top:2px;line-height:1.5}
+.ccard-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:12px;font-weight:600;border:none;cursor:pointer;text-decoration:none;width:fit-content;margin-top:auto;transition:all .2s}
+.ccard-btn.bl{background:#e6f1fb;color:#0c447c}.ccard-btn.bl:hover{background:#b5d4f4}
+.ccard-btn.gr{background:#e1f5ee;color:#085041}.ccard-btn.gr:hover{background:#9fe1cb}
+.ccard-btn.pu{background:#ede9fe;color:#5b21b6}.ccard-btn.pu:hover{background:#ddd6fe}
+.ccard-btn.or{background:#fff7ed;color:#c2410c}.ccard-btn.or:hover{background:#fed7aa}
+.ccard-btn svg{width:13px;height:13px}
+
+/* Hours + FAQ row */
+.lower-row{display:grid;grid-template-columns:1fr 1.45fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:660px){.lower-row{grid-template-columns:1fr}}
+.hours-card{background:#fff;border-radius:16px;border:1px solid #dde5f4;padding:1.5rem}
+.faq-card{background:#fff;border-radius:16px;border:1px solid #dde5f4;padding:1.5rem}
+.card-head{font-size:14px;font-weight:700;color:#0a2540;margin-bottom:1.1rem;display:flex;align-items:center;gap:8px}
+.card-head svg{width:16px;height:16px;flex-shrink:0}
+.h-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.h-row:last-of-type{border-bottom:none}
+.h-day{color:#374151;font-weight:500}
+.h-time{color:#0a2540;font-weight:600;font-size:12.5px}
+.h-closed{color:#c4cdd8;font-size:12.5px}
+.faq-item{border-bottom:1px solid #f1f5f9;padding:11px 0;cursor:pointer}
+.faq-item:last-child{border-bottom:none;padding-bottom:0}
+.faq-q{font-size:13px;font-weight:600;color:#0a2540;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;line-height:1.4}
+.faq-chev{width:15px;height:15px;color:#b0bec5;flex-shrink:0;margin-top:1px;transition:transform .22s}
+.faq-a{font-size:12.5px;color:#6b7280;line-height:1.65;margin-top:7px;display:none;padding-right:24px}
+.faq-item.open .faq-a{display:block}
+.faq-item.open .faq-chev{transform:rotate(180deg);color:#378add}
+.esc-strip{background:linear-gradient(135deg,#0a2540 0%,#1e5fa0 100%);border-radius:16px;padding:1.5rem 1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.esc-left{display:flex;align-items:center;gap:14px}
+.esc-ico{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.esc-ico svg{width:22px;height:22px}
+.esc-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:3px}
+.esc-sub{font-size:12px;color:rgba(255,255,255,0.58);line-height:1.5}
+.esc-cta{padding:10px 22px;background:#fff;color:#0a2540;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.esc-cta:hover{background:#e8f4fd;transform:translateY(-1px)}
+
+/* FOOTER */
+.site-footer{background:#0a2540;color:rgba(255,255,255,0.5);text-align:center;padding:1rem;font-size:12px;margin-top:auto}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,37,64,0.55);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal-box{background:#ffffff;border-radius:20px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.3)}
+.modal-thumb{height:120px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.modal-thumb-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.22)}
+.modal-thumb-badge{position:absolute;top:14px;left:14px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#fff}
+.modal-thumb-title{position:absolute;bottom:14px;left:14px;right:14px;font-size:16px;font-weight:700;color:#fff;line-height:1.3}
+.modal-close-btn{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;transition:background .2s}
+.modal-close-btn:hover{background:rgba(255,255,255,0.3)}
+.modal-body{padding:1.5rem;background:#ffffff}
+.modal-desc{font-size:13.5px;color:#4b5563;line-height:1.65;margin-bottom:1.25rem}
+.modal-url-wrap{background:#f3f4f6;border-radius:10px;padding:10px 14px;margin-bottom:1.25rem;display:flex;align-items:center;gap:10px}
+.modal-url-icon{flex-shrink:0;opacity:0.45}
+.modal-url-text{font-size:11.5px;color:#6b7280;font-family:monospace;word-break:break-all;flex:1}
+.modal-actions{display:flex;gap:10px}
+.modal-cancel-btn{flex:1;padding:11px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:500;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;transition:background .2s}
+.modal-cancel-btn:hover{background:#e5e7eb}
+.modal-open-btn{flex:2;padding:11px;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;background:linear-gradient(135deg,#0a2540,#1a5fa0);color:#fff;border:none;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.modal-open-btn:hover{opacity:0.9}
+.modal-open-btn svg{width:14px;height:14px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage" class="page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="4" y="12" width="4" height="12" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+          <rect x="10" y="8" width="4" height="16" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+          <rect x="16" y="4" width="4" height="20" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+          <circle cx="22" cy="7" r="3" fill="#4fb3f6"/>
+        </svg>
+      </div>
+      <h1>Analytics Hub</h1>
+      <p>Department Dashboard Portal</p>
+    </div>
+    <div class="form-group">
+      <label>User ID</label>
+      <input type="text" id="userId" placeholder="Enter your user ID" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginErr">Incorrect User ID or password. Please try again.</div>
+    <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:1rem">Secured portal — authorised users only</p>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loadingPage" class="page">
+  <div class="loader-logo">
+    <div class="logo-icon">
+      <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
+        <rect x="4" y="12" width="4" height="12" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+        <rect x="10" y="8" width="4" height="16" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+        <rect x="16" y="4" width="4" height="20" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+        <circle cx="22" cy="7" r="3" fill="#4fb3f6"/>
+      </svg>
+    </div>
+    <h2>Analytics Hub</h2>
+    <p>Loading your dashboards…</p>
+  </div>
+  <div class="spinner"></div>
+  <div class="loading-text">Please wait</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainPage" class="page">
+
+  <nav class="topnav welcome-mode" id="topnav">
+    <div class="topnav-left">
+      <div class="topnav-logo">
+        <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+          <rect x="4" y="12" width="4" height="12" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+          <rect x="10" y="8" width="4" height="16" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+          <rect x="16" y="4" width="4" height="20" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+          <circle cx="22" cy="7" r="3" fill="#4fb3f6"/>
+        </svg>
+      </div>
+      <div class="topnav-brand">
+        <div class="topnav-title">Analytics Hub</div>
+        <div class="topnav-subtitle">Department Dashboard Portal</div>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a id="navHome" onclick="showView('welcome',this)">Home</a></li>
+      <li><a id="navDash" onclick="showView('dashboards',this)">Dashboards</a></li>
+      <li><a id="navContact" onclick="showView('contact',this)">Contact</a></li>
+    </ul>
+    <div class="topnav-right">
+      <div class="search-bar" id="searchBarWrap" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Search dashboards…" oninput="filterCards()"/>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- WELCOME VIEW -->
+  <div id="viewWelcome" class="view">
+    <div class="welcome-hero">
+      <div class="welcome-hero-inner">
+        <div class="welcome-badge"><span class="welcome-dot"></span> All systems live</div>
+        <!-- Static headline -->
+        <h1>Your <span>Department</span><br>Analytics Hub</h1>
+        <!-- TYPING on paragraph -->
+        <p class="hero-para"><span id="typedText"></span><span class="cursor" id="typedCursor"></span></p>
+        <div class="welcome-cta" id="welcomeCta">
+          <button class="cta-btn-primary" onclick="triggerNavReveal('dashboards')">Browse All Dashboards</button>
+          <button class="cta-btn-secondary" onclick="triggerNavReveal('contact')">Contact Support</button>
+        </div>
+        <div class="welcome-stats" id="welcomeStats">
+          <div class="w-stat"><div class="w-stat-num">9</div><div class="w-stat-label">Dashboards</div></div>
+          <div class="w-stat"><div class="w-stat-num">5</div><div class="w-stat-label">Categories</div></div>
+          <div class="w-stat"><div class="w-stat-num">Live</div><div class="w-stat-label">Status</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARDS VIEW -->
+  <div id="viewDashboards" class="view" style="flex-direction:column">
+    <div class="section-hero">
+      <div class="section-hero-inner">
+        <h2>All Dashboards</h2>
+        <p>Click any card to open the dashboard in Tableau</p>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="hero-stat-num" id="totalCount">9</div><div class="hero-stat-label">Dashboards</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">5</div><div class="hero-stat-label">Categories</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">Live</div><div class="hero-stat-label">Status</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="content-area">
+      <div class="filter-bar">
+        <button class="filter-btn active" id="filterAll" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('sales',this)">Sales</button>
+        <button class="filter-btn" onclick="setFilter('finance',this)">Finance</button>
+        <button class="filter-btn" onclick="setFilter('hr',this)">HR</button>
+        <button class="filter-btn" onclick="setFilter('ops',this)">Operations</button>
+        <button class="filter-btn" onclick="setFilter('marketing',this)">Marketing</button>
+      </div>
+      <div class="dashboard-grid" id="dashGrid"></div>
+    </div>
+    <footer class="site-footer">&copy; Department &nbsp;·&nbsp; Analytics Hub</footer>
+  </div>
+
+  <!-- CONTACT VIEW -->
+  <div id="viewContact" class="view" style="flex-direction:column">
+    <div class="contact-hero">
+      <div class="contact-hero-inner">
+        <div class="contact-online-badge"><span class="online-dot"></span> Support team is online</div>
+        <h2>We're here to help</h2>
+        <p>Reach the Analytics Hub team through any channel below.<br>We'll get back to you quickly.</p>
+      </div>
+    </div>
+
+    <div class="contact-wrap">
+
+      <!-- CHANGE 3: All 4 cards in one equal-height aligned grid -->
+      <div class="all-cards-row">
+
+        <div class="ccard">
+          <div class="ccard-icon bl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.6 3.38 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ccard-lbl">Call us</div>
+            <div class="ccard-val">+91 22 1234 5678</div>
+            <div class="ccard-sub">Speak directly with the analytics team</div>
+          </div>
+          <a class="ccard-btn bl" href="tel:+912212345678">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Call now
+          </a>
+        </div>
+
+        <div class="ccard">
+          <div class="ccard-icon gr">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0f6e56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ccard-lbl">Email</div>
+            <div class="ccard-val">analytics@department.org</div>
+            <div class="ccard-sub">Response guaranteed within 24 hours</div>
+          </div>
+          <a class="ccard-btn gr" href="mailto:analytics@department.org">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Send email
+          </a>
+        </div>
+
+        <div class="ccard">
+          <div class="ccard-icon pu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#5b21b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ccard-lbl">Live Chat</div>
+            <div class="ccard-val">Teams Chat</div>
+            <div class="ccard-sub">Instant messaging with the support team</div>
+          </div>
+          <button class="ccard-btn pu" onclick="openTeamsChat()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Open chat
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Hours + FAQ -->
+      <div class="lower-row">
+        <div class="hours-card">
+          <div class="card-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Support hours
+          </div>
+          <div class="h-row"><span class="h-day">Monday – Friday</span><span class="h-time">9:00 AM – 6:00 PM</span></div>
+          <div class="h-row"><span class="h-day">Saturday</span><span class="h-time">10:00 AM – 2:00 PM</span></div>
+          <div class="h-row"><span class="h-day">Sunday</span><span class="h-closed">Closed</span></div>
+          <div class="h-row"><span class="h-day">Public Holidays</span><span class="h-closed">Closed</span></div>
+        </div>
+
+        <div class="faq-card">
+          <div class="card-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7f77dd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Frequently asked
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">How do I request access to a dashboard?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="faq-a">Raise a request via the Service Portal and select "Dashboard Access". Our team reviews all requests within one business day.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">A dashboard is not loading — what do I do?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="faq-a">Try refreshing your browser or clearing cache. If the issue persists, email us with the dashboard name and a screenshot of any error message.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">How often are dashboards refreshed?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="faq-a">Most dashboards refresh daily at 6:00 AM IST. The "Updated" date on each card shows the last confirmed data refresh.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">Can I request a new or custom dashboard?<svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="faq-a">Yes — email us with your requirements and data sources. We'll respond within 3 business days.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <footer class="site-footer">&copy; Department &nbsp;·&nbsp; Analytics Hub</footer>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="dashModal">
+  <div class="modal-box">
+    <div class="modal-thumb" id="modalThumb">
+      <div class="modal-thumb-overlay"></div>
+      <button class="modal-close-btn" onclick="closeModal()">&#x2715;</button>
+      <span class="modal-thumb-badge" id="modalBadge"></span>
+      <div class="modal-thumb-title" id="modalThumbTitle"></div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc" id="modalDesc"></p>
+      <div class="modal-url-wrap">
+        <span class="modal-url-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </span>
+        <span class="modal-url-text" id="modalUrl"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel-btn" onclick="closeModal()">Cancel</button>
+        <button class="modal-open-btn" onclick="openDash()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open in Tableau
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CREDS={userId:"admin",password:"Admin@123"};
+const TEAMS_USER="yourname@yourdomain.com";
+
+const DASHBOARDS=[
+  {id:1,title:"Sales Performance Overview",tag:"sales",tagLabel:"Sales",desc:"Monthly revenue trends, regional breakdown, and top product performance metrics.",url:"https://public.tableau.com/views/your-sales-dashboard",thumb:"bars",updated:"Apr 2025"},
+  {id:2,title:"Q1 Revenue Analysis",tag:"finance",tagLabel:"Finance",desc:"Quarterly P&L comparison, budget vs actuals, and cost centre drill-downs.",url:"https://public.tableau.com/views/your-revenue-dashboard",thumb:"line",updated:"Mar 2025"},
+  {id:3,title:"HR Headcount & Attrition",tag:"hr",tagLabel:"HR",desc:"Headcount by department, attrition rate trends, and hiring pipeline summary.",url:"https://public.tableau.com/views/your-hr-dashboard",thumb:"bars",updated:"Apr 2025"},
+  {id:4,title:"Operations KPI Tracker",tag:"ops",tagLabel:"Operations",desc:"SLA compliance, ticket resolution time, and operational efficiency scores.",url:"https://public.tableau.com/views/your-ops-dashboard",thumb:"bars2",updated:"Apr 2025"},
+  {id:5,title:"Marketing Campaign ROI",tag:"marketing",tagLabel:"Marketing",desc:"Campaign spend vs returns, lead funnel conversion, and channel attribution.",url:"https://public.tableau.com/views/your-marketing-dashboard",thumb:"pie",updated:"Feb 2025"},
+  {id:6,title:"Customer Satisfaction (CSAT)",tag:"sales",tagLabel:"Sales",desc:"NPS scores, CSAT trends, and regional customer feedback heatmaps.",url:"https://public.tableau.com/views/your-csat-dashboard",thumb:"line",updated:"Mar 2025"},
+  {id:7,title:"Finance Cash Flow Dashboard",tag:"finance",tagLabel:"Finance",desc:"Weekly cash position, receivables aging, and payment forecast.",url:"https://public.tableau.com/views/your-cashflow-dashboard",thumb:"bars",updated:"Apr 2025"},
+  {id:8,title:"Recruitment Funnel",tag:"hr",tagLabel:"HR",desc:"Application-to-offer conversion, time-to-hire by role, and source effectiveness.",url:"https://public.tableau.com/views/your-recruitment-dashboard",thumb:"bars2",updated:"Jan 2025"},
+  {id:9,title:"Supply Chain Overview",tag:"ops",tagLabel:"Operations",desc:"Inventory levels, supplier lead times, and order fulfilment rates.",url:"https://public.tableau.com/views/your-supply-chain-dashboard",thumb:"line",updated:"Apr 2025"},
+];
+const TAG_COLORS={sales:"tag-sales",finance:"tag-finance",hr:"tag-hr",ops:"tag-ops",marketing:"tag-marketing"};
+const THUMB_COLORS=["#1e4d8c","#0f6e56","#7c3aed","#b45309","#9d174d"];
+let currentFilter="all",selectedDash=null;
+
+/* ── Typing effect — paragraph only ── */
+const TYPING_TEXT = "One place to access all your Tableau dashboards across every team — Sales, Finance, HR, Operations, and Marketing. Find everything you need in seconds.";
+let charIdx=0, typingTimer=null, typingDone=false;
+
+function runTyping(){
+  const el=document.getElementById("typedText");
+  if(!el)return;
+  if(charIdx <= TYPING_TEXT.length){
+    el.textContent = TYPING_TEXT.substring(0, charIdx);
+    charIdx++;
+    // slow slightly at punctuation for natural feel
+    const ch = TYPING_TEXT[charIdx-1];
+    const delay = (ch===','||ch==='.'||ch==='—') ? 120 : 32;
+    typingTimer = setTimeout(runTyping, delay);
+  } else {
+    // hide cursor after done
+    typingDone = true;
+    const cur = document.getElementById("typedCursor");
+    if(cur) setTimeout(()=>{ cur.style.display='none'; }, 1200);
+  }
+}
+
+function startTyping(){
+  clearTimeout(typingTimer);
+  charIdx=0; typingDone=false;
+  const el=document.getElementById("typedText");
+  if(el) el.textContent="";
+  const cur=document.getElementById("typedCursor");
+  if(cur){ cur.style.display='inline-block'; }
+  typingTimer=setTimeout(runTyping, 600);
+}
+
+/* ── Nav reveal animation — improved ── */
+let navRevealed=false;
+
+function triggerNavReveal(targetView){
+  const nav=document.getElementById("topnav");
+  if(!navRevealed){
+    navRevealed=true;
+
+    // Step 1: flash a subtle highlight on the logo area to draw eye
+    nav.classList.add("animating-out");
+
+    // Step 2: remove welcome-mode (brand moves left via animation)
+    setTimeout(()=>{
+      nav.classList.remove("welcome-mode");
+      // Step 3: trigger nav drop animation
+      setTimeout(()=>{
+        nav.classList.add("nav-revealed");
+      }, 80);
+    }, 320);
+
+    // Step 4: navigate after animation settles
+    setTimeout(()=>{
+      nav.classList.remove("animating-out");
+      const linkEl = targetView==="dashboards"
+        ? document.getElementById("navDash")
+        : document.getElementById("navContact");
+      showView(targetView, linkEl);
+    }, 800);
+
+  } else {
+    const linkEl = targetView==="dashboards"
+      ? document.getElementById("navDash")
+      : document.getElementById("navContact");
+    showView(targetView, linkEl);
+  }
+}
+
+function thumb(type,idx){
+  const col=THUMB_COLORS[idx%THUMB_COLORS.length];
+  const bg=`background:linear-gradient(135deg,${col}ee,${col}99)`;
+  if(type==="bars"){const h=[30,55,40,70,50,65,45];return `<div class="dash-card-thumb" style="${bg}"><div class="thumb-bars">${h.map(v=>`<div class="bar" style="height:${v}px"></div>`).join("")}</div></div>`;}
+  if(type==="bars2"){const h=[45,60,35,80,55];return `<div class="dash-card-thumb" style="${bg}"><div class="thumb-bars">${h.map(v=>`<div class="bar" style="height:${v}px"></div>`).join("")}</div></div>`;}
+  if(type==="line"){return `<div class="dash-card-thumb" style="${bg}"><svg class="thumb-line" viewBox="0 0 200 40" preserveAspectRatio="none"><polyline points="0,35 30,22 60,28 90,10 130,18 160,8 200,15" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linejoin="round"/><polyline points="0,35 30,22 60,28 90,10 130,18 160,8 200,15 200,40 0,40" fill="rgba(255,255,255,0.12)" stroke="none"/></svg></div>`;}
+  if(type==="pie"){return `<div class="dash-card-thumb" style="${bg}"><svg class="thumb-pie" width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="14"/><circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="14" stroke-dasharray="70 138.23" stroke-dashoffset="0" transform="rotate(-90 30 30)"/><circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="14" stroke-dasharray="40 138.23" stroke-dashoffset="-70" transform="rotate(-90 30 30)"/></svg></div>`;}
+  return `<div class="dash-card-thumb" style="${bg}"></div>`;
+}
+
+function renderCards(){
+  const search=document.getElementById("searchInput")?.value.toLowerCase()||"";
+  const grid=document.getElementById("dashGrid");
+  const filtered=DASHBOARDS.filter(d=>(currentFilter==="all"||d.tag===currentFilter)&&(!search||d.title.toLowerCase().includes(search)||d.tagLabel.toLowerCase().includes(search)));
+  const el=document.getElementById("totalCount");
+  if(el)el.textContent=filtered.length;
+  if(!filtered.length){grid.innerHTML=`<div class="no-results">No dashboards found.</div>`;return;}
+  grid.innerHTML=filtered.map((d,i)=>`
+    <div class="dash-card" onclick="openModal(${d.id})">
+      ${thumb(d.thumb,i)}
+      <div class="dash-card-header">
+        <div class="dash-card-title">${d.title}</div>
+        <span class="dash-card-tag ${TAG_COLORS[d.tag]}">${d.tagLabel}</span>
+      </div>
+      <div class="dash-card-body"><p>${d.desc}</p></div>
+      <div class="dash-card-footer">
+        <span class="dash-meta">Updated ${d.updated}</span>
+        <button class="open-btn">Open &#x2197;</button>
+      </div>
+    </div>`).join("");
+}
+
+function showView(name,linkEl){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.querySelectorAll(".nav-links a").forEach(a=>a.classList.remove("active"));
+  if(linkEl)linkEl.classList.add("active");
+
+  const nav=document.getElementById("topnav");
+  if(name==="welcome"){
+    nav.classList.add("welcome-mode");
+    nav.classList.remove("nav-revealed");
+    navRevealed=false;
+    startTyping();
+  }
+
+  document.getElementById("viewWelcome").classList.toggle("active",name==="welcome");
+  document.getElementById("viewDashboards").classList.toggle("active",name==="dashboards");
+  document.getElementById("viewContact").classList.toggle("active",name==="contact");
+  document.getElementById("searchBarWrap").style.display=name==="dashboards"?"flex":"none";
+  if(name==="dashboards")renderCards();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function setFilter(tag,btn){currentFilter=tag;document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderCards();}
+function filterCards(){renderCards();}
+function toggleFaq(el){const wasOpen=el.classList.contains("open");document.querySelectorAll(".faq-item").forEach(i=>i.classList.remove("open"));if(!wasOpen)el.classList.add("open");}
+function openTeamsChat(){window.open("https://teams.microsoft.com/l/chat/0/0?users="+encodeURIComponent(TEAMS_USER),"_blank");}
+
+function openModal(id){
+  selectedDash=DASHBOARDS.find(d=>d.id===id);
+  if(!selectedDash)return;
+  const idx=DASHBOARDS.indexOf(selectedDash);
+  const col=THUMB_COLORS[idx%THUMB_COLORS.length];
+  document.getElementById("modalThumb").style.cssText=`height:120px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,${col}ee,${col}99)`;
+  document.getElementById("modalBadge").textContent=selectedDash.tagLabel;
+  document.getElementById("modalThumbTitle").textContent=selectedDash.title;
+  document.getElementById("modalDesc").textContent=selectedDash.desc;
+  document.getElementById("modalUrl").textContent=selectedDash.url;
+  document.getElementById("dashModal").classList.add("open");
+}
+function closeModal(){document.getElementById("dashModal").classList.remove("open");selectedDash=null;}
+function openDash(){if(selectedDash)window.open(selectedDash.url,"_blank");closeModal();}
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");}
+
+function doLogin(){
+  const uid=document.getElementById("userId").value.trim();
+  const pwd=document.getElementById("password").value;
+  const err=document.getElementById("loginErr");
+  if(uid===CREDS.userId&&pwd===CREDS.password){
+    err.style.display="none";showPage("loadingPage");
+    setTimeout(()=>{
+      sessionStorage.setItem("hub_auth","1");
+      showPage("mainPage");
+      showView("welcome",document.getElementById("navHome"));
+      startTyping();
+    },2000);
+  }else{err.style.display="block";document.getElementById("password").value="";}
+}
+
+function doLogout(){
+  sessionStorage.removeItem("hub_auth");
+  navRevealed=false;
+  clearTimeout(typingTimer);
+  showPage("loginPage");
+  document.getElementById("userId").value="";
+  document.getElementById("password").value="";
+}
+
+document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+document.getElementById("userId").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("password").focus();});
+document.getElementById("dashModal").addEventListener("click",e=>{if(e.target===document.getElementById("dashModal"))closeModal();});
+
+if(sessionStorage.getItem("hub_auth")==="1"){
+  showPage("mainPage");
+  showView("welcome",document.getElementById("navHome"));
+  startTyping();
+}else{showPage("loginPage");}
+</script>
+</body>
+</html>
